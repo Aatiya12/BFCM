@@ -39,6 +39,7 @@ WITH windows AS (
                           WHERE
     {parameter_block_2}
     AND sms.to_cc IN ('US','CA')
+    AND sms.account_sid (csv_file)
 
 GROUP BY
     1,2,3,4,5,6,7,8

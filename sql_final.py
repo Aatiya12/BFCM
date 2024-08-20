@@ -64,11 +64,22 @@ def read_csv():
 
     # Assuming the column with IDs is named 'id'
     id_list = df['id'].astype(str).tolist()
+    if not id_list:
+        # Return an empty query or a query without the id condition
+        print("empty list")
+        return ""
 
     # Format the list into a string for SQL
     id_list_str = ','.join(f"'{id}'" for id in id_list)
     print(id_list_str)
-    return id_list_str
+    # SQL query string with placeholder for IDs
+    sql_query_template = "AND account_sid IN({ids})"
+
+    # Format the SQL query with the IDs
+    sql_query = sql_query_template.format(ids=id_list_str)
+    print("csv_data")
+    print(sql_query)
+    return sql_query
 
 
 # Get the formatted SQL parameter blocks from the user input
@@ -95,11 +106,7 @@ def connect_db(credentials):
         http_scheme='https',
         auth=prestodb.auth.BasicAuthentication(credentials['user'], credentials['password'])
     )
-
     cur = conn.cursor()
-    rs = cur.execute('select * from public.rawpii_sms_kafka limit 3')
-    for r in rs:
-        print(r)
     parameter_block_1 = get_block_1_parameters()
     # Define the SQL query template with placeholders for the parameter blocks
     sql_query_template = """
@@ -137,13 +144,13 @@ END as phone_number_type
   ,COUNT(*) AS messages
   ,SUM(CASE WHEN sms.messaging_app_sid IS NULL THEN 0 ELSE sms.num_segments END) AS messaging_service_segments
 ,SUM(CASE WHEN sms.messaging_app_sid IS NULL THEN 0 ELSE 1 END) AS messaging_service_messages
-,SUM(CASE WHEN sms.account_sid IN ({read_csv}) THEN sms.num_segments ELSE 0 END) AS throughput_segments
 FROM
 public.rawpii_sms_kafka sms
 CROSS JOIN windows w
 WHERE
 {parameter_block_2}
 AND sms.to_cc IN ('US','CA')
+{read_csv}
 
 GROUP BY
 1,2,3,4,5,6,7,8
