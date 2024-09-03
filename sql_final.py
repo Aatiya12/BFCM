@@ -7,16 +7,18 @@ def load_credentials(file_path):
     """Load credentials from a JSON file."""
     with open(file_path, 'r') as file:
         return json.load(file)
-def get_block_1_parameters():
+
+
+def get_block_1_parameters(input_1):
     """
     Prompts the user to enter a list of integers for the first parameter block.
     Returns the formatted string of integers wrapped in parentheses.
     """
 
-    user_input = input("Enter a list of integers separated by commas (e.g. 3,50,3000): ")
+    user_input = print(f"Enter a list of integers separated by commas (e.g. 3,50,3000):{input_1} ")
     try:
         # Convert the user input into a list of integers
-        int_list = [int(item) for item in user_input.split(",")]
+        int_list = [int(val) for val in input_1]
 
         # Create the formatted string for the SQL query
         formatted_parameters = ",".join(f"({num})" for num in int_list)
@@ -38,8 +40,10 @@ def get_block_2_parameters(mode,start_date,end_date):
     Collects the necessary inputs based on the chosen mode.
     Returns the formatted SQL condition string for the chosen mode.
     """
-
+    mode = input_2
+    print (mode)
     if mode == "TRAILING":
+        print ("mode 1")
         formatted_parameters = f"""
 (DATE_TRUNC('DAY', sms.data_load_date) >= DATE_TRUNC('DAY', CURRENT_DATE - interval '{start_date}' day)
 AND DATE_TRUNC('DAY', sms.data_load_date) <= DATE_TRUNC('DAY', CURRENT_DATE - interval '{end_date - 3}' day))
@@ -47,6 +51,7 @@ AND DATE_TRUNC('DAY', sms.date_created) >= DATE_TRUNC('DAY', CURRENT_DATE - inte
 AND DATE_TRUNC('DAY', sms.date_created) < DATE_TRUNC('DAY', CURRENT_DATE - interval '{end_date}' day)
 """
     elif mode == "DATERANGE":
+        print("mode 2")
         formatted_parameters = f"""
 ((DATE_TRUNC('DAY', sms.data_load_date) >= DATE('{start_date}') 
 AND DATE_TRUNC('DAY', sms.data_load_date) <= DATE('{end_date}') + interval '3' day))
@@ -84,17 +89,19 @@ def read_csv():
 
 # Get the formatted SQL parameter blocks from the user input
 #Function to get date combinations from the user
-def get_date_combinations(mode):
+def get_date_combinations(mode, input_3):
     if mode == "TRAILING":
-        combinations = input("Enter date combinations (e.g., (34,4),(30,10)): ").strip()
-        combinations = combinations.replace("(", "").replace(")", "").split(",")
-        return [(int(combinations[i]), int(combinations[i+1])) for i in range(0, len(combinations), 2)]
+        print(input_3)
+
+        # combinations = processed_data.replace("(", "").replace(")", "").split(",")
+        # [(int(combinations[i]), int(combinations[i+1])) for i in range(0, len(combinations), 2)]
+        return input_3
     elif mode == "DATERANGE":
         combinations = input("Enter date combinations (e.g., (2023-11-20,2023-12-01),(2023-12-05,2023-12-10)): ").strip()
         combinations = combinations.replace("(", "").replace(")", "").split(",")
         return [(combinations[i].strip(), combinations[i+1].strip()) for i in range(0, len(combinations), 2)]
 
-def connect_db(credentials):
+def connect_db(credentials, input_1, input_2, input_3):
 
     """Connect to PrestoDB and show tables using provided credentials."""
     conn = prestodb.dbapi.connect(
@@ -107,7 +114,7 @@ def connect_db(credentials):
         auth=prestodb.auth.BasicAuthentication(credentials['user'], credentials['password'])
     )
     cur = conn.cursor()
-    parameter_block_1 = get_block_1_parameters()
+    parameter_block_1 = get_block_1_parameters(input_1)
     # Define the SQL query template with placeholders for the parameter blocks
     sql_query_template = """
     WITH windows AS (
@@ -338,15 +345,16 @@ GROUP BY
 1,2,3,4,5,6,7
 
 """
-
-    mode = input("Enter the mode for block 2 (TRAILING or DATERANGE): ").strip().upper()
-    date_combinations = get_date_combinations(mode)
+    mode = input_2
+    date_combinations = input_3
+    print(date_combinations)
     all_data = pd.DataFrame()  # Initialize an empty DataFrame to store all results
+    count =0
     for start_date, end_date in date_combinations:
         parameter_block_2 = get_block_2_parameters(mode, start_date, end_date)
         get_csv_data = read_csv()
         sql_query = sql_query_template.format(parameter_block_1=parameter_block_1,parameter_block_2 = parameter_block_2, read_csv =get_csv_data)
-        print("Generated SQL Query:")
+        print(f"Generated SQL Query:{count}")
         print(sql_query)
         cur.execute(sql_query)
         column_names = [desc[0] for desc in cur.description]
@@ -355,7 +363,7 @@ GROUP BY
         # Convert results to DataFrame and append to all_data
         result_df = pd.DataFrame(results, columns=column_names)
         all_data = pd.concat([all_data, result_df], ignore_index=True)
-
+        count = count+1
     conn.close()
 
     print(column_names)
@@ -373,5 +381,23 @@ credentials = load_credentials('credentials/okta.json')
 
 # Show tables in the specified schema using loaded credentials
 print("running main function")
+def load_and_use_json():
+    # Read the JSON file
+    with open('data.json', 'r') as file:
+        data = json.load(file)
 
-connect_db(credentials)
+    # Extract data
+    values = data['values']
+    choice = data['choice']
+    combinations = data['combinations']
+
+    # Convert combinations to list of tuples
+    combinations = [tuple(comb) for comb in combinations]
+
+    # Use the data
+    print("Values:", values)
+    print("Choice:", choice)
+    print("Combinations:", combinations)
+    return values, choice, combinations
+input_1, input_2, input_3 = load_and_use_json()
+connect_db(credentials,input_1, input_2, input_3 )

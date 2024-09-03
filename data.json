@@ -1,0 +1,5 @@
+{
+  "values": [3, 4, 5],
+  "choice": "TRAILING",
+  "combinations": [[34, 4], [34, 23], [23,34]]
+}

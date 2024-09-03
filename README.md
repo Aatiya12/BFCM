@@ -7,7 +7,9 @@ This project allows you to automate SQL queries by leveraging Python's capabilit
 Before you start, ensure you have the following installed:
 
 - Python 3.6 or higher
-- Required Python packages listed in `requirements.txt`. Install Required Packages: pip install -r requirements.txt
+- Create a python virtual env : python3 -m venv myenv
+- Activate the Virtual Environment: source myenv/bin/activate
+- Install Required Python packages listed in `requirements.txt`. Install Required Packages: pip install -r requirements.txt
 
 ## Configure Database Connection:
 Edit the okta.json file to include your database connection details.
@@ -20,7 +22,22 @@ Edit the okta.json file to include your database connection details.
 "schema": "applied_ds"
 }
 
+
 To run the SQL query automation script, use the following command:
 
-python3 sql.py
+For "TRAILING" mode  use the below format for data.json:
+{
+"values": [3, 4, 5],
+"choice": "TRAILING",
+"combinations": [[34, 4], [34, 23], [23,34]]
+}
+
+For "DATARANGE" use the below format for data.json:
+{
+"values": [3, 4, 5],
+"choice": "DATERANGE",
+"combinations": [["2023-11-20","2023-12-01"]]
+}
+
+python3 sql_final.py
 
